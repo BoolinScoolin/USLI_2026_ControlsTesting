@@ -127,7 +127,7 @@ try:
         aquat_b_mps2 = Quaternion([0, ax_b_mps2, ay_b_mps2, az_b_mps2])
 
         # Rotate accelerations to body frame
-        temp_quat = quat_mult(q.conjugate, aquat_b_mps2)
+        temp_quat = quat_mult(q.conjugate(), aquat_b_mps2)
         aquat_n_mps2 = quat_mult(temp_quat,q)
 
         # Extract acceleration in navigation frame
