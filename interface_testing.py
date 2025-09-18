@@ -1,4 +1,5 @@
 import socket  # used for live streaming through TCP
+import struct
 import time  # used for delays
 import board, busio  # circuitpython
 import adafruit_lsm6ds.lsm6ds3trc as LSM6DS  # adafruit
