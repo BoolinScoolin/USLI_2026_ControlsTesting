@@ -94,11 +94,11 @@ try:
                                 ])
 
         # Lambda Correction Factor (Modelling and Simulation, P. Zipfel)
-        lamb = 1 - (q[0]**2 + q[1]**2 + q[2]**2 + q[3]**2)
+        lamb = 1 - (q.array[0]**2 + q.array[1]**2 + q.array[2]**2 + q.array[3]**2)
         k = 1/dt
 
         # Compute State Derivative
-        qdot = 0.5 * omega_matrix @ q.q
+        qdot = 0.5 * omega_matrix @ q.array
 
         # Forward Euler Integration
         deltaq = qdot*dt
@@ -125,7 +125,7 @@ try:
 
         # Store acceleration as quaternion object
         a_b_mps2 = np.array([ax_b_mps2, ay_b_mps2, az_b_mps2])
-        aquat_b_mps2 = Quaternion(0, avec)
+        aquat_b_mps2 = Quaternion(0, a_b_mps2)
 
         # Rotate accelerations to body frame
         temp_quat = quat_mult(q.conjugate, aquat_b_mps2)
@@ -147,7 +147,7 @@ try:
         vz_n_mps = v_n_mps[2]
 
         # Format Output
-        packet = struct.pack("ffffffffff", q[0], q[1], q[2], q[3],
+        packet = struct.pack("ffffffffff", q.array[0], q.array[1], q.array[2], q.array[3],
                              rx_n_m, ry_n_m, rz_n_m, vx_n_mps, vy_n_mps, vz_n_mps)
         sock.sendall(packet)
 

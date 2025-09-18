@@ -5,7 +5,7 @@ class Quaternion:
         q = np.array(q, dtype=float)
         if q.shape != (4,):
             raise ValueError("Quaternion must be a 4-element array [w, x, y, z]")
-        self.q = q
+        self.array = q
 
     def __repr__(self):
         return f"Quaternion({self.q})"
