@@ -110,7 +110,7 @@ try:
         q = q + deltaq
 
         # Normalize Quaternion
-        q = q.normalize
+        q = q.normalize()
 
         # Read Accelerometer Data
         ax_b_mps2, ay_b_mps2, az_b_mps2 = sensor.acceleration
