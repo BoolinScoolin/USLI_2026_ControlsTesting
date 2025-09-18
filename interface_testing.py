@@ -98,7 +98,7 @@ try:
         qstar = q*q2qstar
 
         # Read Accelerometer Data
-        ax, ay, az = sensor.accelerometer
+        ax, ay, az = sensor.acceleration
         print(f"ax={ax:.3f}, ay={ay:.3f}, az={az:.3f}")
 
         # Format Output
