@@ -58,10 +58,12 @@ try:
 
 
         # Form Quaternion Kinematic Evolution Matrix
-        omega_matrix = np.array([0,      -p_rps,  -q_rps,  -r_rps],
+        omega_matrix = np.array([
+                                [0,      -p_rps,  -q_rps,  -r_rps],
                                 [p_rps,   0,       r_rps,  -q_rps],
                                 [q_rps,  -r_rps,   0,       p_rps],
-                                [r_rps,   q_rps,  -p_rps,  0])
+                                [r_rps,   q_rps,  -p_rps,   0]
+                                ])
 
         # Lambda Correction Factor (Modelling and Simulation, P. Zipfel)
         lamb = 1 - (q[0]**2 + q[1]**2 + q[2]**2 + q[3]**2)
