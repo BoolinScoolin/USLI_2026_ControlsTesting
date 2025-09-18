@@ -4,7 +4,7 @@ import time  # used for delays
 import board, busio  # circuitpython
 import adafruit_lsm6ds.lsm6ds3trc as LSM6DS  # adafruit
 import numpy as np
-
+from quaternion import *
 
 # setup i2c bus
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -30,6 +30,10 @@ d2r = np.pi/180  # degrees to radians
 r2d = 1/d2r  # radians to degrees
 q2qstar = np.array([1,-1,-1,-1])  # quaternion transpose
 
+# Initialize Position
+r_n_m = np.array([0,0,0])
+v_n_mps = np.array([0,0,0])
+
 # Initialize Orientation w/ Euler Angles
 phi_rad = 180*d2r
 theta_rad = 0*d2r
@@ -46,6 +50,8 @@ q3 = ( np.sin(psi_rad/2)*np.cos(theta_rad/2)*np.cos(phi_rad/2)
         - np.cos(psi_rad/2)*np.sin(theta_rad/2)*np.sin(phi_rad/2))
 
 q = np.array([q0, q1, q2, q3])
+
+q = Quaternion(q)
 
 
 # Tare
@@ -92,27 +98,57 @@ try:
         k = 1/dt
 
         # Compute State Derivative
-        qdot = 0.5 * omega_matrix @ q
+        qdot = 0.5 * omega_matrix @ q.q
+
+        # Forward Euler Integration
+        deltaq = qdot*dt
+
+        # Store in Quaternion object
+        deltaq = Quaternion(deltaq)
 
         # Update Quaternion
-        q = q + qdot*dt
+        q = q + deltaq
+
+        # Normalize Quaternion
         q = q / np.linalg.norm(q)
 
-        # Take Quaternion Transpose
-        qstar = q*q2qstar
-
         # Read Accelerometer Data
-        ax_mps2, ay_mps2, az_mps2 = sensor.acceleration
+        ax_b_mps2, ay_b_mps2, az_b_mps2 = sensor.acceleration
 
         # Subtract Tare
-        ax_mps2 = ax_mps2 - ax_mps2_tare
-        ay_mps2 = ay_mps2 - ay_mps2_tare
-        az_mps2 = az_mps2 - az_mps2_tare
+        ax_b_mps2 = ax_b_mps2 - ax_mps2_tare
+        ay_b_mps2 = ay_b_mps2 - ay_mps2_tare
+        az_b_mps2 = az_b_mps2 - az_mps2_tare
 
-        print(f"ax={ax_mps2:.3f}, ay={ay_mps2:.3f}, az={az_mps2:.3f}")
+        # Print Tared Readings (debug)
+        print(f"ax={ax_b_mps2:.3f}, ay={ay_b_mps2:.3f}, az={az_b_mps2:.3f}")
+
+        # Store acceleration as quaternion object
+        a_b_mps2 = np.array([ax_b_mps2, ay_b_mps2, az_b_mps2])
+        aquat_b_mps2 = Quaternion(0, avec)
+
+        # Rotate accelerations to body frame
+        temp_quat = quat_mult(q.conjugate, aquat_b_mps2)
+        aquat_n_mps2 = quat_mult(temp_quat,q)
+
+        # Extract acceleration in navigation frame
+        a_n_mps2 = aquat_n_mps2.vec
+
+        # Euler integration
+        v_n_mps = v_n_mps + a_n_mps2*dt
+        r_n_m = r_n_m + v_n_mps*dt
+
+        # Extract r and v
+        rx_n_m = r_n_m[0]
+        ry_n_m = r_n_m[1]
+        rz_n_m = r_n_m[2]
+        vx_n_mps = v_n_mps[0]
+        vy_n_mps = v_n_mps[1]
+        vz_n_mps = v_n_mps[2]
 
         # Format Output
-        packet = struct.pack("ffff", q[0], q[1], q[2], q[3])
+        packet = struct.pack("ffffffffff", q[0], q[1], q[2], q[3],
+                             rx_n_m, ry_n_m, rz_n_m, vx_n_mps, vy_n_mps, vz_n_mps)
         sock.sendall(packet)
 
         # Delay
