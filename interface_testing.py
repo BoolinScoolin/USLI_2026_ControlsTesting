@@ -46,6 +46,15 @@ q3 = ( np.sin(psi_rad/2)*np.cos(theta_rad/2)*np.cos(phi_rad/2)
 
 q = np.array([q0, q1, q2, q3])
 
+
+# Tare
+tare_size = 1000 # Number of measurements in the tare
+tare_measurements = np.zeros([tare_size,3])
+for i in range(tare_size):
+    p_rps, q_rps, r_rps = sensor.gyro
+    tare_measurements[i] = [p_rps, q_rps, r_rps]
+p_tare_rps, q_tare_rps, r_tare_rps = np.mean(tare_measurements, axis=0)
+
 try:
     while True:
 
@@ -56,6 +65,10 @@ try:
         
         # Extract Gyro Data
         p_rps, q_rps, r_rps = sensor.gyro
+
+        p_rps = p_rps - p_tare_rps
+        q_rps = q_rps - q_tare_rps
+        r_rps = r_rps - r_tare_rps
 
         print(p_rps, q_rps, r_rps)
 
