@@ -57,6 +57,7 @@ try:
         # Extract Gyro Data
         p_rps, q_rps, r_rps = sensor.gyro
 
+        print(p_rps, q_rps, r_rps)
 
         # Form Quaternion Kinematic Evolution Matrix
         omega_matrix = np.array([
