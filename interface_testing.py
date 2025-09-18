@@ -10,6 +10,6 @@ try:
         # Gyro values in radians/sec
         gx, gy, gz = sensor.gyro
         print(f"Gyro: x={gx:.3f}, y={gy:.3f}, z={gz:.3f}")
-        time.sleep(0.2)  # adjust speed (0.2s = 5 Hz)
+        #time.sleep(0.2)  # adjust speed (0.2s = 5 Hz)
 except KeyboardInterrupt:
     print("\nStopped by user.")
