@@ -50,11 +50,15 @@ q = np.array([q0, q1, q2, q3])
 
 # Tare
 tare_size = 1000 # Number of measurements in the tare
-tare_measurements = np.zeros([tare_size,3])
+tare_measurements_gyro = np.zeros([tare_size,3])
+tare_measurements_accel = np.zeros([tare_size,3])
 for i in range(tare_size):
     p_rps, q_rps, r_rps = sensor.gyro
-    tare_measurements[i] = [p_rps, q_rps, r_rps]
-p_tare_rps, q_tare_rps, r_tare_rps = np.mean(tare_measurements, axis=0)
+    ax_mps2, ay_mps2, az_mps2 = sensor.acceleration
+    tare_measurements_gyro[i] = [p_rps, q_rps, r_rps]
+    tare_measurements_accel[i] = [ax_mps2, ay_mps2, az_mps2]
+p_tare_rps, q_tare_rps, r_tare_rps = np.mean(tare_measurements_gyro, axis=0)
+ax_mps2_tare, ay_mps2_tare, az_mps2_tare = np.mean(tare_measurements_accel, axis=0)
 
 try:
     while True:
@@ -98,7 +102,13 @@ try:
         qstar = q*q2qstar
 
         # Read Accelerometer Data
-        ax, ay, az = sensor.acceleration
+        ax_mps2, ay_mps2, az_mps2 = sensor.acceleration
+
+        # Subtract Tare
+        ax_mps2 = ax_mps2 - ax_mps2_tare
+        ay_mps2 = ay_mps2 - ay_mps2_tare
+        az_mps2 = az_mps2 - az_mps2_tare
+
         print(f"ax={ax:.3f}, ay={ay:.3f}, az={az:.3f}")
 
         # Format Output
