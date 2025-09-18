@@ -1,7 +1,7 @@
 import numpy as np
 
 class Quaternion:
-    def __init__(self, qvec):
+    def __init__(self, q):
         q = np.array(q, dtype=float)
         if q.shape != (4,):
             raise ValueError("Quaternion must be a 4-element array [w, x, y, z]")
