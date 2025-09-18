@@ -124,8 +124,7 @@ try:
         print(f"ax={ax_b_mps2:.3f}, ay={ay_b_mps2:.3f}, az={az_b_mps2:.3f}")
 
         # Store acceleration as quaternion object
-        a_b_mps2 = np.array([ax_b_mps2, ay_b_mps2, az_b_mps2])
-        aquat_b_mps2 = Quaternion(0, a_b_mps2)
+        aquat_b_mps2 = Quaternion([0, ax_b_mps2, ay_b_mps2, az_b_mps2])
 
         # Rotate accelerations to body frame
         temp_quat = quat_mult(q.conjugate, aquat_b_mps2)
