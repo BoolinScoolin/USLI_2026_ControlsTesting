@@ -1,3 +1,4 @@
+import time
 import board, busio
 import adafruit_lsm6ds.lsm6ds3trc as LSM6DS
 
