@@ -26,8 +26,9 @@ last_time = time.time()
 # AEROSPACE STUFF
 
 # Constants
-d2r = np.pi/180
-r2d = 1/d2r
+d2r = np.pi/180  # degrees to radians
+r2d = 1/d2r  # radians to degrees
+q2qstar = np.array([1,-1,-1,-1])  # quaternion transpose
 
 # Initialize Orientation w/ Euler Angles
 phi_rad = 180*d2r
@@ -66,11 +67,13 @@ try:
         # Extract Gyro Data
         p_rps, q_rps, r_rps = sensor.gyro
 
+        # Subtract Tare
         p_rps = p_rps - p_tare_rps
         q_rps = q_rps - q_tare_rps
         r_rps = r_rps - r_tare_rps
 
-        print(p_rps, q_rps, r_rps)
+        # Print readings (debug)
+        # print(p_rps, q_rps, r_rps)
 
         # Form Quaternion Kinematic Evolution Matrix
         omega_matrix = np.array([
@@ -90,6 +93,13 @@ try:
         # Update Quaternion
         q = q + qdot*dt
         q = q / np.linalg.norm(q)
+
+        # Take Quaternion Transpose
+        qstar = q*q2qstar
+
+        # Read Accelerometer Data
+        ax, ay, az = sensor.accelerometer
+        print(f"ax={ax:.3f}, ay={ay:.3f}, az={az:.3f}")
 
         # Format Output
         packet = struct.pack("ffff", q[0], q[1], q[2], q[3])
