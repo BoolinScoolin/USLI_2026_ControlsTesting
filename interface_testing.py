@@ -109,7 +109,7 @@ try:
         ay_mps2 = ay_mps2 - ay_mps2_tare
         az_mps2 = az_mps2 - az_mps2_tare
 
-        print(f"ax={ax:.3f}, ay={ay:.3f}, az={az:.3f}")
+        print(f"ax={ax_mps2:.3f}, ay={ay_mps2:.3f}, az={az_mps2:.3f}")
 
         # Format Output
         packet = struct.pack("ffff", q[0], q[1], q[2], q[3])
