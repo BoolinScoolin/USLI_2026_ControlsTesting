@@ -30,7 +30,7 @@ d2r = np.pi/180
 r2d = 1/d2r
 
 # Initialize Orientation w/ Euler Angles
-phi_rad = 0*d2r
+phi_rad = 180*d2r
 theta_rad = 0*d2r
 psi_rad = 0*d2r
 
