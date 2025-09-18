@@ -8,22 +8,22 @@ class Quaternion:
         self.array = q
 
     def __repr__(self):
-        return f"Quaternion({self.q})"
+        return f"Quaternion({self.array})"
 
     def normalize(self):
-        self.q = self.q / np.linalg.norm(self.q)
+        self.array = self.array / np.linalg.norm(self.array)
         return self
 
     def conjugate(self):
-        w, x, y, z = self.q
+        w, x, y, z = self.array
         return Quaternion(w, -x, -y, -z)
     
     def vec(self):
-        w, x, y, z =  self.q
+        w, x, y, z =  self.array
         return np.array([x, y, z])
     
     def __add__(self, other):
-        return Quaternion(self.q + other.q)
+        return Quaternion(self.array + other.array)
     
 def quat_mult(q1, q2):
 
