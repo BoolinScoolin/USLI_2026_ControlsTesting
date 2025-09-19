@@ -15,7 +15,7 @@ class Quaternion:
         return self
 
     def conjugate(self):
-        w, x, y, z = self.array()
+        w, x, y, z = self.array
         return Quaternion([w, -x, -y, -z])
     
     def vec(self):
