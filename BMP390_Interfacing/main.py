@@ -19,5 +19,5 @@ while True:
     print("Pressure: {:6.1f}".format(bmp.pressure))
     print("Temperature: {:5.2f}".format(bmp.temperature))
 
-    time.sleep(0.2)
+    # time.sleep(0.2)
 
