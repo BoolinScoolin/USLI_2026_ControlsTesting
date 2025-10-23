@@ -19,10 +19,19 @@
 
 #include "MTi.h"
 #include <Wire.h>
+#include <SD.h>
+#include <string>
 
-#define DRDY 15                      //Arduino Digital IO pin used as input for MTi-DRDY
+using std::string;
+
+
+#define DRDY 17                      //Arduino Digital IO pin used as input for MTi-DRDY
 #define ADDRESS 0x6B                //MTi I2C address 0x6B (default I2C address for MTi 1-series)
 MTi *MyMTi = NULL;
+
+// Intialize Output Files
+File IMU_output;
+string IMU_output_filename = "IMU_output.txt"; // include .txt
 
 void setup() {
 
@@ -61,6 +70,31 @@ void setup() {
     MyMTi->goToMeasurement();       //Switch device to Measurement mode
     delay(100);
   }
+
+    // Export data
+  bool sd_ok = SD.begin(BUILTIN_SDCARD);
+  Serial.print("SD.begin() = ");
+  Serial.println(sd_ok ? "SUCCESS" : "FAIL");
+  if (!SD.begin(BUILTIN_SDCARD)) {
+    Serial.println("SD Card initialization failed. Please try again.");
+    while (true);
+  }
+  Serial.println("Initialization done.");
+  IMU_output = SD.open(IMU_output_filename.c_str(), FILE_WRITE);
+  if (!IMU_output) {
+    Serial.println("Error opening file! Please try again.");
+    while (true);
+  }
+  else {
+    Serial.println("SD Output file opened.");
+    IMU_output.print("ax ");
+    IMU_output.print("ay ");
+    IMU_output.print("az ");
+    IMU_output.print("wx ");
+    IMU_output.print("wy ");
+    IMU_output.println("wz");
+  }
+
   Serial.println("\nInitialization complete.");
   delay(1000);
 }
@@ -68,25 +102,70 @@ void setup() {
 void loop() {
   static bool TARE_FLAG = false; // tare flag to check if tare has completed
   static int ii = 0;  // counter to check how many readings are in tare
+  static unsigned long lastFlush = 0; // initialize timer since last flush
+  static float tare[6] = {0.0f};  // all elements = 0.0f
+
   if (digitalRead(MyMTi->drdy)) {   //MTi reports that new data/notifications are available
     MyMTi->readMessages();          //Read new data messages
     float* acc_b_N = MyMTi->getAcceleration();
     float* omega_b_rps = MyMTi->getRateOfTurn();
     if (TARE_FLAG) {
-      Serial.print(acc_b_N[0]);
+      Serial.print(acc_b_N[0] - tare[0]);
       Serial.print(' ');
-      Serial.print(acc_b_N[1]);
+      Serial.print(acc_b_N[1] - tare[1]);
       Serial.print(' ');
-      Serial.print(acc_b_N[2]);
+      Serial.print(acc_b_N[2] - tare[2]);
       Serial.print(' ');
-      Serial.print(omega_b_rps[0]);
+      Serial.print(omega_b_rps[0] - tare[3]);
       Serial.print(' ');
-      Serial.print(omega_b_rps[1]);
+      Serial.print(omega_b_rps[1] - tare[4]);
       Serial.print(' ');
-      Serial.println(omega_b_rps[2]);
-    } else {
+      Serial.println(omega_b_rps[2] - tare[5]);
 
+      // Export
+      IMU_output.print(acc_b_N[0] - tare[0]);
+      IMU_output.print(' ');
+      IMU_output.print(acc_b_N[1] - tare[1]);
+      IMU_output.print(' ');
+      IMU_output.print(acc_b_N[2] - tare[2]);
+      IMU_output.print(' ');
+      IMU_output.print(omega_b_rps[0] - tare[3]);
+      IMU_output.print(' ');
+      IMU_output.print(omega_b_rps[1] - tare[4]);
+      IMU_output.print(' ');
+      IMU_output.println(omega_b_rps[2] - tare[5]);
+    } else if (millis() - lastFlush > 2500) {
+      tare[0] += acc_b_N[0];  // store values
+      tare[1] += acc_b_N[1];
+      tare[2] += acc_b_N[2];
+      tare[3] += omega_b_rps[0];
+      tare[4] += omega_b_rps[1];
+      tare[5] += omega_b_rps[2];
+      ii++;  // count values in tare
+    } else {
+      if (ii>0) {   // make sure you dont divide by zero
+        for (int j = 0; j < 6; j++) tare[j] /= ii;  // compute average
+      }
+      // Export tare
+      IMU_output.print(tare[0]);
+      IMU_output.print(' ');
+      IMU_output.print(tare[1]);
+      IMU_output.print(' ');
+      IMU_output.print(tare[2]);
+      IMU_output.print(' ');
+      IMU_output.print(tare[3]);
+      IMU_output.print(' ');
+      IMU_output.print(tare[4]);
+      IMU_output.print(' ');
+      IMU_output.println(tare[5]);
+      TARE_FLAG = true;
+      Serial.println("Tare Complete");
+      delay(1000);
     }
-    static int ii = 0
+
+    if (millis() - lastFlush > 1000) {
+      IMU_output.flush();
+      lastFlush = millis();
+    }
   }
 }
