@@ -25,7 +25,7 @@
 using std::string;
 
 
-#define DRDY 17                      //Arduino Digital IO pin used as input for MTi-DRDY
+#define DRDY 20                    //Arduino Digital IO pin used as input for MTi-DRDY
 #define ADDRESS 0x6B                //MTi I2C address 0x6B (default I2C address for MTi 1-series)
 MTi *MyMTi = NULL;
 
@@ -96,6 +96,8 @@ void setup() {
   }
 
   Serial.println("\nInitialization complete.");
+  pinMode(33, OUTPUT);
+  tone(33, 2000, 500);   // play 2 kHz tone for 500 ms
   delay(1000);
 }
 

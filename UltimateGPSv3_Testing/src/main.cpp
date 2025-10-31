@@ -66,7 +66,8 @@ void setup() {
     Serial.println("SD Card initialization failed. Please try again.");
     while (true);
   }
-  Serial.println("Initialization done.");
+  Serial.println("SD Card Initialization done.");
+  
   gps_output = SD.open("gps_7f_test1.txt", FILE_WRITE);
   if (!gps_output) {
     Serial.println("Error opening file! Please try again.");
