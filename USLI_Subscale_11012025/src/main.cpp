@@ -1,6 +1,7 @@
 // No abstraction since that broke it last time and I'm on a deadline ... 
 
-const float MOTOR_BURNOUT_TIME = 3.5; // Add factor of safety
+const float MOTOR_BURNOUT_TIME = 3.1; // Add factor of safety
+const float M_PI = 3.1415926;
 
 // Includes
 #include <Arduino.h>  // For teensy
@@ -11,6 +12,7 @@ const float MOTOR_BURNOUT_TIME = 3.5; // Add factor of safety
 #include <Adafruit_Sensor.h>  // For barometer
 #include <Adafruit_BMP3XX.h>  // For barometer
 #include <string> // for strings
+#include <cmath> // for math
 // #include <Eigen> // For math
 
 // namespace eg = Eigen;
@@ -51,6 +53,13 @@ SMS_STS st; // create servo object
 #define SERVOSerial Serial4
 #define SERVO_ID 1
 const float deg2servo = 4096.0 / 360;
+
+// Sine wave parameter
+float amplitude = 44.5*deg2servo;     // ±800 counts around center
+float offset = 44.5*deg2servo;       // center position
+float freq = 0.5;          // 0.2 Hz = one cycle every 5 seconds
+unsigned long t0;
+static bool test1 = false;
 
 void setup() {
 
@@ -164,21 +173,26 @@ void setup() {
     IMU_output.println("wz");
   }
 
+  // Rotate servo slightly
+  st.WritePosEx(SERVO_ID, 85*deg2servo, 3800, 50);
+  delay(500);
+  st.WritePosEx(SERVO_ID, 0, 3800, 50);
 
+  // Turn off onboard LED
+  digitalWrite(LED_BUILTIN, LOW);
+
+  // Set sine wave initial time
+  t0 = millis();
+
+  
   // Initialization complete
   tone(BUZZER_PIN, NOTE_D8, 100);   // play 2 kHz tone for 500 ms
   delay(100);
   tone(BUZZER_PIN, NOTE_F8, 100);   // play 2 kHz tone for 500 ms
   delay(100);
   tone(BUZZER_PIN, NOTE_A8, 200);   // play 2 kHz tone for 500 ms
-  
-  // Rotate servo slightly
-  st.WritePosEx(SERVO_ID, 45*deg2servo, 3800, 50);
   delay(500);
-  st.WritePosEx(SERVO_ID, 0, 3800, 50);
-
-  // Turn off onboard LED
-  digitalWrite(LED_BUILTIN, LOW);
+  
 }
 
 void loop() {
@@ -187,14 +201,17 @@ void loop() {
   static int ii = 0;  // counter to check how many readings are in tare
   static unsigned long lastFlush = 0; // initialize timer since last flush
   static float tare[6] = {0.0f};  // all elements = 0.0f
+  static float alt_tare = 0.0;
+  static float altitude;
 
   // Initialize accelerometer readings
   float* acc_b_N = nullptr;
+  float* omega_b_rps = nullptr;
 
   if (digitalRead(MyMTi->drdy)) {   //MTi reports that new data/notifications are available
     MyMTi->readMessages();          //Read new data messages
-    float* acc_b_N = MyMTi->getAcceleration();
-    float* omega_b_rps = MyMTi->getRateOfTurn();
+    acc_b_N = MyMTi->getAcceleration();
+    omega_b_rps = MyMTi->getRateOfTurn();
     if (TARE_FLAG) {
 
       acc_b_N[0] = acc_b_N[0] - tare[0];
@@ -203,6 +220,9 @@ void loop() {
       omega_b_rps[0] = omega_b_rps[0] - tare[3];
       omega_b_rps[1] = omega_b_rps[1] - tare[4];
       omega_b_rps[2] = omega_b_rps[2] - tare[5];
+
+      altitude = bmp.readAltitude(SEALEVELPRESSURE_HPA) - alt_tare;
+
       
       // Export
       IMU_output.print(acc_b_N[0]);
@@ -217,6 +237,15 @@ void loop() {
       IMU_output.print(' ');
       IMU_output.println(omega_b_rps[2]);
 
+      if (!test1) {
+        tone(BUZZER_PIN, NOTE_A8, 200);
+        delay(200);
+        tone(BUZZER_PIN, NOTE_A8, 200);
+        delay(200);
+        tone(BUZZER_PIN, NOTE_A8, 200);
+        test1 = true;
+      }
+
     } else if (millis() - lastFlush > 5000) {
       tare[0] += acc_b_N[0];  // store values
       tare[1] += acc_b_N[1];
@@ -225,9 +254,20 @@ void loop() {
       tare[4] += omega_b_rps[1];
       tare[5] += omega_b_rps[2];
       ii++;  // count values in tare
+      if (!test1) {
+        tone(BUZZER_PIN, NOTE_A8, 200);
+        delay(200);
+        tone(BUZZER_PIN, NOTE_A8, 200);
+        delay(200);
+        tone(BUZZER_PIN, NOTE_A8, 200);
+        delay(200);
+        tone(BUZZER_PIN, NOTE_A8, 200);
+      test1 = true;
+    }
     } else {
       if (ii>0) {   // make sure you dont divide by zero
         for (int j = 0; j < 6; j++) tare[j] /= ii;  // compute average
+        alt_tare = bmp.readAltitude(SEALEVELPRESSURE_HPA);
       }
       // Export tare
       IMU_output.print(tare[0]);
@@ -242,8 +282,13 @@ void loop() {
       IMU_output.print(' ');
       IMU_output.println(tare[5]);
       TARE_FLAG = true;
-      Serial.println("Tare Complete");
-      delay(1000);
+        // Tare complete
+      tone(BUZZER_PIN, NOTE_D8, 200);   // play 2 kHz tone for 500 ms
+      delay(200);
+      tone(BUZZER_PIN, NOTE_F8, 200);   // play 2 kHz tone for 500 ms
+      delay(200);
+      tone(BUZZER_PIN, NOTE_A8, 400);   // play 2 kHz tone for 500 ms
+      delay(500);
     }
 
     if (millis() - lastFlush > 1000) {
@@ -263,30 +308,75 @@ void loop() {
   static bool ABORT_FLAG = false;
   static bool APOGEE_FLAG = false;
   static bool LANDING_FLAG = false;
+  static float LAUNCH_TIME = 0;
+  static int ABORT_ROTRATE_DPS = 180;
 
-  if (LANDING_FLAG) {
+  if (LANDING_FLAG &&  TARE_FLAG) {
     // Start beeping like an animal to make kevin's life harder
 
-  } else if (APOGEE_FLAG) {
+  } else if (APOGEE_FLAG &&  TARE_FLAG) {
     // Check for landing
 
-  } else if (ABORT_FLAG) {
+
+
+  } else if (ABORT_FLAG &&  TARE_FLAG) {
+
     // Return Servo
     // Turn off servo serial port
     // Check for apogee
+    st.WritePosEx(SERVO_ID, 0, 3800, 50);
+    while(true);
 
-  } else if (BURNOUT_FLAG) {
+  } else if (BURNOUT_FLAG &&  TARE_FLAG) {
+
     // Continue integration
     // Turn on airbrake / GNC logic
     // Check for ABORT conditions
     // Check for apogee
+    if (std::fabs(omega_b_rps[1]) > ABORT_ROTRATE_DPS || std::fabs(omega_b_rps[2]) >  ABORT_ROTRATE_DPS) {
+      ABORT_FLAG = true;
+    }
+    
+    float t = (millis() - t0) / 1000.0;  // time in seconds
+    float pos = offset + amplitude * sin(2 * M_PI * freq * t);
 
-  } else if (LAUNCH_FLAG) {
-    // Begin integration
+    st.WritePosEx(SERVO_ID, pos, 3800, 50);
+
+  } else if (LAUNCH_FLAG &&  TARE_FLAG) {
+
     // Begin Timer for burnout
+    if (millis() - LAUNCH_TIME > 1000*MOTOR_BURNOUT_TIME) {
+      if (alt_tare > 30) {
+        BURNOUT_FLAG = true;
+      } else {
+        LAUNCH_FLAG = false;
+      }
+    }
 
-  } else {  // On the rail
+  } else if (TARE_FLAG) {  // On the rail
 
+    // Testing (DELETE)
+    if (!test1) {
+      tone(BUZZER_PIN, NOTE_A8, 200);
+      test1 = true;
+    }
+
+    Serial.begin(115200);
+    Serial.println(acc_b_N[0]);
+
+    // Compute norm of measured acceleration
+    float acc_mag = std::sqrt(acc_b_N[0]*acc_b_N[0] + acc_b_N[1]*acc_b_N[1] + acc_b_N[2]*acc_b_N[2]);
+
+    if (false) {
+      LAUNCH_FLAG = true;
+      LAUNCH_TIME = millis();
+
+      // Testing (DELETE)
+      tone(BUZZER_PIN, NOTE_A7, 200);
+      delay(500);
+      tone(BUZZER_PIN, NOTE_A8, 200);
+
+    }
       // Initialize orientation and position
       // Check for Launch
 

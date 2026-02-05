@@ -11,6 +11,12 @@ Adafruit_BMP3XX bmp;
 // Intialize Output Files
 File barometer_output;
 
+// Servo stuff (1/3)
+#include <SCServo.h>
+SMS_STS st; // create servo object
+#define SERVOSerial Serial4
+#define SERVO_ID 1
+
 void setup() {
 
   // Turn on Teensy LED
@@ -53,6 +59,14 @@ void setup() {
     Serial.println("SD Output file opened.");
     barometer_output.println("Altitude [m]");
   }
+
+
+  // Servo Stuff (2/3)
+  SERVOSerial.begin(1000000, SERIAL_8N1); // Open servo serial line at 1 mbps and 8N1 serial data format configuration
+  st.pSerial = &SERVOSerial; // assign serial pointer to serial port
+  delay(500);
+  Serial.println("Servo Initialization done.");
+  delay(500);
 }
 
 void loop() {
@@ -64,4 +78,13 @@ void loop() {
     barometer_output.flush();
     lastFlush = millis();
   }
+
+  // Servo Stuff (3/3)
+
+  if (altitude > 3000 && altitude < 5000) {
+    st.WritePosEx(SERVO_ID, 2796, 3800, 50);
+    int pos = st.ReadPos(SERVO_ID);
+    Serial.println(pos);
+  }
+
 }

@@ -22,6 +22,8 @@
 #include <SD.h>
 #include <string>
 
+
+
 using std::string;
 
 
@@ -31,7 +33,17 @@ MTi *MyMTi = NULL;
 
 // Intialize Output Files
 File IMU_output;
-string IMU_output_filename = "IMU_output.txt"; // include .txt
+string IMU_output_filename = "IMU_output_1112025.txt"; // include .txt
+
+
+#include <SCServo.h>
+
+SMS_STS st; // create servo object
+
+// Servo Serial Port
+#define SERVOSerial Serial4
+// Servo number
+#define SERVO_ID 1
 
 void setup() {
 
@@ -106,6 +118,13 @@ void loop() {
   static int ii = 0;  // counter to check how many readings are in tare
   static unsigned long lastFlush = 0; // initialize timer since last flush
   static float tare[6] = {0.0f};  // all elements = 0.0f
+
+  // Move servo back
+  st.WritePosEx(SERVO_ID, 2796, 3800, 50);
+  int pos = st.ReadPos(SERVO_ID);
+  Serial.println(pos);
+  delay(100);
+
 
   if (digitalRead(MyMTi->drdy)) {   //MTi reports that new data/notifications are available
     MyMTi->readMessages();          //Read new data messages
