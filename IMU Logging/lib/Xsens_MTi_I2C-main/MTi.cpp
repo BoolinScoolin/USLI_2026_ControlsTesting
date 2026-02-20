@@ -39,12 +39,21 @@ void MTi::configureOutputs() {
     sendMessage(outputConfig, sizeof(outputConfig));
 
   } else if (xbus.productCode == '2' | xbus.productCode == '3') {//"MTi-2 VRU or MTi-3 AHRS
-    Serial.println("Configuring Acceleration at 50 Hz.");
     //uint8_t outputConfig[] = {0xC0, 0x04, 0x40, 0x20, 0x01, 0x90, 0x80, 0x20, 0x01, 0x90};                            //setOutputConfiguration Xbus message with Data field 0x20 0x30 0x00 0x01 (EulerAngles, 32-bit float, at 1 Hz)
     //uint8_t outputConfig[] = {0xC0, 0x08, 0x40, 0x20, 0x01, 0x90, 0x80, 0x20, 0x01, 0x90};  // 400 hz
-    uint8_t outputConfig[] = {0xC0, 0x08, 0x40, 0x20, 0x00, 0x64, 0x80, 0x20, 0x00, 0x64};  // 100 hz
-    // Serial.println("Configuring Euler angles at 10 Hz.");
+    // uint8_t outputConfig[] = {0xC0, 0x08, 0x40, 0x20, 0x00, 0x64, 0x80, 0x20, 0x00, 0x64};  // 100 hz
+    // uint8_t outputConfig[] = {0xC0, 0x08, 0x40, 0x20, 0x00, 0x64, 0x80, 0x20, 0x00, 0x64, 0xC0, 0x04, 0x20, 0x30, 0x00, 0x0A};  // 100 hz
     // uint8_t outputConfig[] = {0xC0, 0x04, 0x20, 0x30, 0x00, 0x0A};                          //setOutputConfiguration Xbus message with Data field 0x20 0x30 0x00 0x01 (EulerAngles, 32-bit float, at 10 Hz)
+    uint8_t outputConfig[] = {
+      0xC0, 0x0C,                // SetOutputConfiguration, payload length = 12 bytes
+
+      0x40, 0x20, 0x00, 0x64,     // 0x4020 Acceleration, 100 Hz
+      0x80, 0x20, 0x00, 0x64,     // 0x8020 RateOfTurn (gyro), 100 Hz
+      0x20, 0x30, 0x00, 0x0A      // 0x2030 EulerAngles, 10 Hz
+    };
+    sendMessage(outputConfig, sizeof(outputConfig));
+    Serial.println("Config Complete.");
+
     sendMessage(outputConfig, sizeof(outputConfig));
     Serial.println("Config Complete.");
 

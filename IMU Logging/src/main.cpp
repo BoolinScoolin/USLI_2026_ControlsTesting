@@ -25,30 +25,42 @@ INS_State ins = {0};
 File output_file;
 #define OUTPUT_FILENAME "IMU_Output.txt" // include .txt
 
+volatile bool write_data_flag = false;
 
 void new_imu_reading() {
     // readIMU(measurement);
     // predict(ins, measurement);
 
     readIMU(measurement);
-    float t_s = measurement.last_IMU_reading_time_us * 1.0e-6f;
-    // Write data
-    output_file.print(t_s,6);
-    output_file.print(",");
-    output_file.print(measurement.accelX, 6);
-    output_file.print(",");
-    output_file.print(measurement.accelY, 6);
-    output_file.print(",");
-    output_file.print(measurement.accelZ, 6);
-    output_file.print(",");
-    output_file.print(measurement.gyroX, 6);
-    output_file.print(",");
-    output_file.print(measurement.gyroY, 6);
-    output_file.print(",");
-    output_file.println(measurement.gyroZ, 6);
+
+    // // Write data
+    // output_file.print(t_s,6);
+    // output_file.print(",");
+    // output_file.print(measurement.accelX, 6);
+    // output_file.print(",");
+    // output_file.print(measurement.accelY, 6);
+    // output_file.print(",");
+    // output_file.print(measurement.accelZ, 6);
+    // output_file.print(",");
+    // output_file.print(measurement.gyroX, 6);
+    // output_file.print(",");
+    // output_file.print(measurement.gyroY, 6);
+    // output_file.print(",");
+    // output_file.println(measurement.gyroZ, 6);
+
+    // Serial.print(t_s);
+    // Serial.println(",   Data Write.")
+
+    static uint32_t k = 0;
+
+    k++;
+
+    if (k >= 10) {
+        write_data_flag = true;
+    }    
 }
 
-uint32_t now = millis();
+uint32_t last_flush_ms = millis();
 
 void setup() {
 
@@ -112,16 +124,59 @@ void setup() {
     if (digitalRead(IMU_DRDY_PIN)) readIMU(measurement);
     attachInterrupt(IMU_DRDY_PIN, new_imu_reading, RISING);
 
+    // Chime to signify start of logging
+    pinMode(BUZZER_PIN, OUTPUT);
+    tone(BUZZER_PIN, NOTE_B7, 50);
+    delay(50);
+    tone(BUZZER_PIN, NOTE_D8, 50);
+    delay(50);
+    tone(BUZZER_PIN, NOTE_G8, 100);
+    delay(2000);
     Serial.println("Setup complete.");
-    now = millis();
+    last_flush_ms = millis();
 }
 
 void loop() {
 
-    if (millis() - now > 300000) {
-        output_file.flush();
-        Serial.println("Flushed");
-        while (1);
+    delay(50);
+
+    // if (millis() - last_flush_ms > 10*1000) {
+    //     output_file.flush();
+    //     Serial.println("Flushed");
+    //     last_flush_ms = millis();
+    //     //while (1);
+    // }
+
+    static uint32_t c = 0;  // counter
+
+    if (write_data_flag) {
+        // Write data
+        float t_s = measurement.last_IMU_reading_time_us * 1.0e-6f;
+        output_file.print(t_s,6);
+        output_file.print(",");
+        output_file.print(measurement.accelX, 6);
+        output_file.print(",");
+        output_file.print(measurement.accelY, 6);
+        output_file.print(",");
+        output_file.print(measurement.accelZ, 6);
+        output_file.print(",");
+        output_file.print(measurement.gyroX, 6);
+        output_file.print(",");
+        output_file.print(measurement.gyroY, 6);
+        output_file.print(",");
+        output_file.println(measurement.gyroZ, 6);
+        Serial.print(t_s);
+        Serial.println(",   Data Write.");
+
+        c++;
+
+        if (c >= 200) {
+            output_file.flush();
+            Serial.println("Flushed.");
+            c = 0;
+        }
+
+        write_data_flag = false;
     }
     
 }

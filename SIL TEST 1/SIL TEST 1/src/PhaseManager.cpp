@@ -78,9 +78,9 @@ PhaseDetectionData getPhaseDataFromPast(int samplesAgo) {
 }
 
 bool isAltitudeDecreasingFor(int numSamples) {
-    if (!phaseBufferFilled && phaseBufferIndex < numSamples) {
-        return false;
-    }
+    // if (!phaseBufferFilled && phaseBufferIndex < numSamples) {
+    //     return false;
+    // }
     
     for (int i = 1; i < numSamples; i++) {
         PhaseDetectionData current = getPhaseDataFromPast(i - 1);
@@ -239,6 +239,8 @@ void updateFlightPhase(INS_State& ins) {
 
         case CONTROL_TEST: {
             // send max actuation signal
+            controller.commandFlapAngle(MAX_FLAP_ANGLE);
+            servo.writePosition(OPEN_POSITION);
 
             // switch phase after timer finishes
             if (now - phaseStartTime > CONTROL_TEST_TIME_US) {
@@ -263,7 +265,10 @@ void updateFlightPhase(INS_State& ins) {
             bool significantDrop = (altChange < -APOGEE_ALT_DECREASE_THRESHOLD);
             
             // All three conditions must be met for robust apogee detection
+            // if (velocityNegative && altitudeDecreasing && significantDrop)
             if (velocityNegative && altitudeDecreasing && significantDrop) {
+                controller.commandFlapAngle(MIN_FLAP_ANGLE);
+                servo.writePosition(controller.getActuatorCommand());
                 currentPhase = DESCENT;
                 phaseStartTime = now;
             }
@@ -294,6 +299,7 @@ void updateFlightPhase(INS_State& ins) {
                                        LANDING_VEL_CHANGE_MAX);
             
             if (lowAltitude && isStable) {
+                servo.writePosition(CLOSE_POSITION);
                 currentPhase = LANDED;
                 phaseStartTime = now;
             }
@@ -328,13 +334,23 @@ void updateFlightPhase(INS_State& ins) {
     }
 }
 
-void checkLockout(INS_State& ins, FlightPhase& currentPhase) {
-    
-    // Condition 1: pitching too fast
-    float pitch_rate_rps = sqrt(ins.q_b_rps*ins.q_b_rps + ins.r_b_rps*ins.r_b_rps);
-    if (pitch_rate_rps > PITCH_RATE_RPS_LOCKOUT_THRESHOLD) {
-        currentPhase = ABORTED;
-    }
+bool checkLockout(INS_State& ins, FlightPhase& currentPhase) {
+
+    // // Condition 1: pitching too fast
+    // float pitch_rate_rps = sqrt(ins.q_b_rps*ins.q_b_rps + ins.r_b_rps*ins.r_b_rps);
+    // if (pitch_rate_rps > PITCH_RATE_RPS_LOCKOUT_THRESHOLD) {
+    //     currentPhase = ABORTED;
+    // }
+
+    // // Condition 2: pitch angle too great
+    // float ctheta = 2*(ins.q_nb.q0*ins.q_nb.q2 - ins.q_nb.q1*ins.q_nb.q3);
+
+    // if (ctheta < CTHETA_THRESHOLD) {
+    //     currentPhase = ABORTED;
+    //     return true;
+    // }
+
+    return false;
 
 }
 
@@ -351,11 +367,3 @@ bool tooPitched(void* arg){
     return false;
 */
 
-// ============================================================================
-// CONTROL CHECK
-// ============================================================================
-
-bool shouldControl() {
-    // Only control airbrakes during COASTING phase
-    return (currentPhase == COASTING || currentPhase == CONTROL_TEST);
-}

@@ -19,6 +19,7 @@
 
 extern const char* phaseNames[];
 
+
 // ============================================================================
 // PHASE DETECTION CONFIGURATION
 // ============================================================================
@@ -36,8 +37,10 @@ extern const char* phaseNames[];
 #define CONTROL_TEST_TIME_US 3000000
 
 // Lockouts
-#define PITCH_RATE_RPS_LOCKOUT_THRESHOLD 0.5
-#define PITCH_ANGLE_LOCKOUT_THRESHOLD // this may become a lookup table
+#define PITCH_RATE_RPS_LOCKOUT_THRESHOLD .8
+#define PITCH_ANGLE_DEG_LOCKOUT_THRESHOLD 45.0f // this may become a lookup table
+const float CTHETA_THRESHOLD = cosf(PITCH_ANGLE_DEG_LOCKOUT_THRESHOLD*PI/180.0f);
+
 
 // Apogee detection (COASTING → DESCENT)
 #define APOGEE_SAMPLES_CHECK 10           // Check last 10 samples
@@ -45,9 +48,9 @@ extern const char* phaseNames[];
 #define APOGEE_VELOCITY_THRESHOLD -1.0f   // Velocity must be consistently negative
 
 // Landing detection (DESCENT → LANDED)
-#define LANDING_ALT_THRESHOLD 10.0f        // meters AGL (generous threshold)
-#define LANDING_SAMPLES_CHECK 50          // Check last 20 samples (0.2 seconds at 100 Hz)
-#define LANDING_ALT_CHANGE_MAX 0.03f        // Altitude change < 0.5m over samples
+#define LANDING_ALT_THRESHOLD 20.0f        // meters AGL (generous threshold)
+#define LANDING_SAMPLES_CHECK 100          // Check last 20 samples (0.2 seconds at 100 Hz)
+#define LANDING_ALT_CHANGE_MAX 0.3f        // Altitude change < 0.5m over samples
 #define LANDING_VEL_CHANGE_MAX 0.1f        // Velocity change < 0.5m/s over samples
 
 // ============================================================================
@@ -90,7 +93,7 @@ void updateFlightPhase(INS_State& ins);
 // Control check
 bool shouldControl();
 
-void checkLockout(INS_State& ins, FlightPhase& currentPhase);
+bool checkLockout(INS_State& ins, FlightPhase& currentPhase);
 
 // Phase buffer functions (if enabled)
 #ifdef ENABLE_PHASE_BUFFER

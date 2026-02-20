@@ -9,13 +9,17 @@
 #include "imu_calibration.h"
 #include "KalmanFilter.h"
 #include "PhaseManager.h"
+#include "Actuator.h"
+#include "ApogeeController.h"
+
+#include "sil.h"
 
 // IMU
-#define IMU_DRDY_PIN 20
-#define IMU_ADDRESS 0x6B
+// #define IMU_DRDY_PIN 12
+// #define IMU_ADDRESS 0x6B
 
 // Initialize beeper 
-#define BUZZER_PIN 33
+#define BUZZER_PIN 37
 const int NOTE_A7 = 3520;
 const int NOTE_B7 = 3951;
 const int NOTE_C8 = 4186;
@@ -27,23 +31,26 @@ const int NOTE_A8 = 7040;
 const int NOTE_B8 = 7902;
 
 // Data logging
-#define OUTPUT_FILENAME "IMU_Output.txt" // include .txt
+#define OUTPUT_FILENAME "Flight_Data_SIL.csv" // include extension
 #define CALIBRATION_FILENAME "six_point_calibration.txt"
 #define ONE_MINUTE_US 60UL*1000000UL
+
+// Initialize Servo Parameters
+class CTServo;
+extern CTServo servo; // create servo object
+
+class ApogeeController;
+extern ApogeeController controller;
 
 extern IMU_Measurements imu_meas;
 extern BARO_Measurements baro_meas;
 extern INS_State ins;
 extern FlightPhase currentPhase;
 
-
 // Calibration data
 extern TUMBLE_Data calib_data;
 extern KalmanFilter KF;
 extern bool read_baro_flag;
-
-
-
 
 template <size_t N>
 struct RollingMeanFifo {

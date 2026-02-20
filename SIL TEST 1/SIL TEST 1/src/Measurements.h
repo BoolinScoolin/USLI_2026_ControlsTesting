@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 // Current measurements (holds latest sensor readings)
 struct IMU_Measurements {
     // IMU

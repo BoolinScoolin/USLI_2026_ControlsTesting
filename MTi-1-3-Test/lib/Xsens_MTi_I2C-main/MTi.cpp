@@ -110,10 +110,10 @@ void MTi::sendMessage(uint8_t *message, uint8_t numBytes) {
   }
   message[numBytes] = checksum;                                                                     //Add the checksum at the end of the Xbus message
 
-  Wire.beginTransmission(address);
-  Wire.write(XSENS_CONTROL_PIPE);                                                                   //Send the opcode before sending the Xbus command
-  Wire.write(message, numBytes + 1);
-  Wire.endTransmission();
+  Wire2.beginTransmission(address);
+  Wire2.write(XSENS_CONTROL_PIPE);                                                                   //Send the opcode before sending the Xbus command
+  Wire2.write(message, numBytes + 1);
+  Wire2.endTransmission();
 }
 
 

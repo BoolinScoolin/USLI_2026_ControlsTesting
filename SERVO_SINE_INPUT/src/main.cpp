@@ -3,7 +3,7 @@
 #include <SD.h>
 
 // Initialize beeper c:
-#define BUZZER_PIN 33
+#define BUZZER_PIN 37
 const int NOTE_A7 = 3520;
 const int NOTE_B7 = 3951;
 const int NOTE_C8 = 4186;
@@ -16,16 +16,16 @@ const int NOTE_B8 = 7902;
 
 // Initialize Servo Parameters
 SMS_STS st; // create servo object
-#define SERVOSerial Serial4
+#define SERVOSerial Serial2
 #define SERVO_ID 1
-const float deg2servo = 4096.0 / 360;
+const float deg2servo = 4096.0f / 360;
 File output_file;
-#define OUTPUT_FILENAME "servo_sine_0p5Hz.txt" // include .txt
+#define OUTPUT_FILENAME "servo_sine_1p0Hz.txt" // include .txt
 
 
 // Sine wave parameter
-float amplitude = 44.5*deg2servo;
-float offset = 44.5*deg2servo;       // center position
+float amplitude = 20*deg2servo;
+float offset = (27.95+30)*deg2servo;       // center position
 float freq = 0.5;          // Hz
 uint32_t t0;
 uint32_t next_sample_us;
@@ -107,7 +107,13 @@ void loop() {
     float pos = offset + amplitude * sin(2 * M_PI * freq * t);
     
     // Write servo command
-    st.WritePosEx(SERVO_ID, pos, 3800, 50);
+    // st.WritePosEx(SERVO_ID, pos, 3800, 50);
+    if (t < 5) {
+      st.WritePosEx(SERVO_ID, 500, 3800, 50);
+    }
+    else {
+      st.WritePosEx(SERVO_ID, 1200, 3800, 50);
+    }
 
     // Read servo encoder data
     int pos_ach = st.ReadPos(SERVO_ID);
@@ -119,13 +125,25 @@ void loop() {
     output_file.print(",");
     output_file.println(pos_ach);
 
+    // Write data to serial window too
+    Serial.print(t,6);
+    Serial.print(",");
+    Serial.print(pos/deg2servo);
+    Serial.print(",");
+    Serial.print(pos_ach/deg2servo);
+    Serial.print(',');
+    Serial.print(pos);
+    Serial.print(",");
+    Serial.println(pos_ach);
+
     // Update loop counter
     n++;
 
     // Stop readings after 20 seconds
-    if (t > 20.0) {
+    if (t > 15.0) {
       output_file.flush();
-      st.WritePosEx(SERVO_ID, 0, 3800, 50);
+      output_file.close();
+      //st.WritePosEx(SERVO_ID, 0, 3800, 50);
       tone(BUZZER_PIN, NOTE_D8, 500);
       while(true);
     }

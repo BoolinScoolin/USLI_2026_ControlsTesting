@@ -27,23 +27,14 @@
 using std::string;
 
 
-#define DRDY 20                    //Arduino Digital IO pin used as input for MTi-DRDY
+#define DRDY 12                    //Arduino Digital IO pin used as input for MTi-DRDY
 #define ADDRESS 0x6B                //MTi I2C address 0x6B (default I2C address for MTi 1-series)
 MTi *MyMTi = NULL;
 
 // Intialize Output Files
 File IMU_output;
-string IMU_output_filename = "IMU_output_1112025.txt"; // include .txt
+string IMU_output_filename = "IMU_output_02042026.txt"; // include .txt
 
-
-#include <SCServo.h>
-
-SMS_STS st; // create servo object
-
-// Servo Serial Port
-#define SERVOSerial Serial4
-// Servo number
-#define SERVO_ID 1
 
 void setup() {
 
@@ -54,7 +45,7 @@ void setup() {
   while (!Serial) delay(10);
   Serial.println("\nInitializing...");
   delay(100);
-  Wire.begin();                     //Initialize Wire library for I2C communication
+  Wire2.begin();                     //Initialize Wire library for I2C communication
   pinMode(DRDY, INPUT);             //Data Ready pin, indicates whether data/notifications are available to be read
   
   Serial.println("Past pinMode...");
@@ -108,8 +99,8 @@ void setup() {
   }
 
   Serial.println("\nInitialization complete.");
-  pinMode(33, OUTPUT);
-  tone(33, 2000, 500);   // play 2 kHz tone for 500 ms
+  pinMode(37, OUTPUT);
+  tone(37, 2000, 500);   // play 2 kHz tone for 500 ms
   delay(1000);
 }
 
@@ -118,12 +109,6 @@ void loop() {
   static int ii = 0;  // counter to check how many readings are in tare
   static unsigned long lastFlush = 0; // initialize timer since last flush
   static float tare[6] = {0.0f};  // all elements = 0.0f
-
-  // Move servo back
-  st.WritePosEx(SERVO_ID, 2796, 3800, 50);
-  int pos = st.ReadPos(SERVO_ID);
-  Serial.println(pos);
-  delay(100);
 
 
   if (digitalRead(MyMTi->drdy)) {   //MTi reports that new data/notifications are available
