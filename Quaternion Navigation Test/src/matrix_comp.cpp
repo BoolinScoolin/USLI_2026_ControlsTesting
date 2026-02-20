@@ -35,3 +35,4 @@ void matrix_vector_multiplication_3x3(float res[3], float arr[3][3], float vec[3
                 }
         }
 }
+

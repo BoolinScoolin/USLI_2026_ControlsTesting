@@ -34,14 +34,14 @@ bool Xbus::read(uint8_t address) {
 
 
 void Xbus::readPipeStatus(uint8_t address) {
-  Wire.beginTransmission(address);
-  Wire.write(XSENS_STATUS_PIPE);
-  Wire.endTransmission();
+  Wire2.beginTransmission(address);
+  Wire2.write(XSENS_STATUS_PIPE);
+  Wire2.endTransmission();
 
-  Wire.requestFrom(address, uint8_t(4));
-  if (Wire.available() > 0) {
+  Wire2.requestFrom(address, uint8_t(4));
+  if (Wire2.available() > 0) {
     for (int i = 0; i < 4; i++) {
-      status[i] = Wire.read();
+      status[i] = Wire2.read();
     }
   }
 
@@ -51,14 +51,14 @@ void Xbus::readPipeStatus(uint8_t address) {
 
 
 void Xbus::readPipeNotif(uint8_t address) {
-  Wire.beginTransmission(address);
-  Wire.write(XSENS_NOTIF_PIPE);
-  Wire.endTransmission();
+  Wire2.beginTransmission(address);
+  Wire2.write(XSENS_NOTIF_PIPE);
+  Wire2.endTransmission();
 
-  Wire.requestFrom(address, notificationSize);
-  if (Wire.available() > 0) {
+  Wire2.requestFrom(address, notificationSize);
+  if (Wire2.available() > 0) {
     for (int i = 0; i < notificationSize; ++i) {
-      datanotif[i] = Wire.read();
+      datanotif[i] = Wire2.read();
     }
   }
 }
@@ -66,14 +66,14 @@ void Xbus::readPipeNotif(uint8_t address) {
 
 
 void Xbus::readPipeMeas(uint8_t address) {
-  Wire.beginTransmission(address);
-  Wire.write(XSENS_MEAS_PIPE);
-  Wire.endTransmission();
+  Wire2.beginTransmission(address);
+  Wire2.write(XSENS_MEAS_PIPE);
+  Wire2.endTransmission();
 
-  Wire.requestFrom(address, measurementSize);
-  if (Wire.available() > 0) {
+  Wire2.requestFrom(address, measurementSize);
+  if (Wire2.available() > 0) {
     for (int i = 0; i < measurementSize; ++i) {
-      datameas[i] = Wire.read();
+      datameas[i] = Wire2.read();
     }
   }
 }

@@ -213,6 +213,8 @@ void updateFlightPhase(INS_State& ins) {
                 currentPhase = POWERED_ASCENT;
                 liftoffTime = now;
                 phaseStartTime = now;
+                digitalWrite(RGB_R_PIN, HIGH);
+                tone(BUZZER_PIN, NOTE_G8, 3000);
             }
         }
             break;
@@ -231,6 +233,8 @@ void updateFlightPhase(INS_State& ins) {
                 }
                 else {
                     currentPhase = CONTROL_TEST;
+                    digitalWrite(RGB_R_PIN, LOW);
+                    digitalWrite(RGB_G_PIN, HIGH);
                     phaseStartTime = now;
                 }
             }
@@ -239,6 +243,8 @@ void updateFlightPhase(INS_State& ins) {
 
         case CONTROL_TEST: {
             // send max actuation signal
+            controller.commandFlapAngle(MAX_FLAP_ANGLE);
+            servo.writePosition(controller.getActuatorCommand());
 
             // switch phase after timer finishes
             if (now - phaseStartTime > CONTROL_TEST_TIME_US) {
@@ -246,16 +252,9 @@ void updateFlightPhase(INS_State& ins) {
                 phaseStartTime = now;
             }
         }
+            break;
             
         case COASTING: {
-            // ================================================================
-            // APOGEE DETECTION: COASTING → DESCENT
-            // Robust detection using multiple criteria:
-            // 1. Velocity consistently negative for N samples
-            // 2. Altitude has decreased over the last N samples
-            // 3. Total altitude drop exceeds threshold
-            // ================================================================
-            
             #ifdef ENABLE_PHASE_BUFFER
             bool velocityNegative = isVelocityNegativeFor(APOGEE_SAMPLES_CHECK);
             bool altitudeDecreasing = isAltitudeDecreasingFor(APOGEE_SAMPLES_CHECK);
@@ -264,9 +263,12 @@ void updateFlightPhase(INS_State& ins) {
             
             // All three conditions must be met for robust apogee detection
             if (velocityNegative && altitudeDecreasing && significantDrop) {
+                controller.commandFlapAngle(MIN_FLAP_ANGLE);
+                servo.writePosition(controller.getActuatorCommand());
                 currentPhase = DESCENT;
                 phaseStartTime = now;
             }
+
             #else
             // Fallback: simple velocity check (less robust)
             bool descendingVelocity = (ins.v3_n_mps < APOGEE_VELOCITY_THRESHOLD);
@@ -296,6 +298,17 @@ void updateFlightPhase(INS_State& ins) {
             if (lowAltitude && isStable) {
                 currentPhase = LANDED;
                 phaseStartTime = now;
+                tone(BUZZER_PIN, NOTE_G8, 10000);
+                delay(10000);
+                output_file.flush();
+                output_file.close();
+                delay(2000);
+                tone(BUZZER_PIN, NOTE_E8, 200);
+                delay(200);
+                tone(BUZZER_PIN, NOTE_C8, 200);
+                delay(200);
+                tone(BUZZER_PIN, NOTE_A7, 500);
+                delay(2000);
             }
             #else
             // Fallback: simple threshold check (less robust)
@@ -328,34 +341,21 @@ void updateFlightPhase(INS_State& ins) {
     }
 }
 
-void checkLockout(INS_State& ins, FlightPhase& currentPhase) {
+bool checkLockout(INS_State& ins, FlightPhase& currentPhase) {
     
-    // Condition 1: pitching too fast
-    float pitch_rate_rps = sqrt(ins.q_b_rps*ins.q_b_rps + ins.r_b_rps*ins.r_b_rps);
-    if (pitch_rate_rps > PITCH_RATE_RPS_LOCKOUT_THRESHOLD) {
-        currentPhase = ABORTED;
-    }
+    // // Condition 1: pitching too fast
+    // float pitch_rate_rps = sqrt(ins.q_b_rps*ins.q_b_rps + ins.r_b_rps*ins.r_b_rps);
+    // if (pitch_rate_rps > PITCH_RATE_RPS_LOCKOUT_THRESHOLD) {
+    //     currentPhase = ABORTED;
+    // }
 
-}
+    // // Condition 2: pitch angle too great
+    // float ctheta = 2*(ins.q_nb.q0*ins.q_nb.q2 - ins.q_nb.q1*ins.q_nb.q3);
 
-/*
-//Pitching check
-bool tooPitched(void* arg){
-    IMUState* imuState = static_cast<IMUState*>(arg);
-    const float MAX_SAFE_PITCH = 30.0f;
-    if (std::abs(imuState->pitch) > MAX_SAFE_PITCH) {          
-        currentPhase = ABORTED;
-        return true;
+    // if (ctheta < CTHETA_THRESHOLD) {
+    //     currentPhase = ABORTED;
+    //     return true;
+    // }
 
-    }
     return false;
-*/
-
-// ============================================================================
-// CONTROL CHECK
-// ============================================================================
-
-bool shouldControl() {
-    // Only control airbrakes during COASTING phase
-    return (currentPhase == COASTING || currentPhase == CONTROL_TEST);
 }

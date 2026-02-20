@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 // Current measurements (holds latest sensor readings)
 struct IMU_Measurements {
     // IMU

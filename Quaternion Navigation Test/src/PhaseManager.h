@@ -27,17 +27,18 @@ extern const char* phaseNames[];
 
 // Liftoff detection (ARMED → POWERED_ASCENT)
 #define LIFTOFF_ACCEL_THRESHOLD 2.0f      // m/s² - adjust from motor specs
-#define LIFTOFF_ALT_THRESHOLD 0.1f        // meters AGL
+#define LIFTOFF_ALT_THRESHOLD 0.0f        // meters AGL
 
 // Burnout detection (POWERED_ASCENT → COASTING)
-#define BURNOUT_TIME_MIN 3000000          // 3 seconds (microseconds) for testing
+#define BURNOUT_TIME_MIN 5000000          // 3 seconds (microseconds) for testing
 
 // Control test phase length
 #define CONTROL_TEST_TIME_US 3000000
 
 // Lockouts
 #define PITCH_RATE_RPS_LOCKOUT_THRESHOLD 3.0f
-#define PITCH_ANGLE_LOCKOUT_THRESHOLD // this may become a lookup table
+#define PITCH_ANGLE_DEG_LOCKOUT_THRESHOLD 45.0f // this may become a lookup table
+const float CTHETA_THRESHOLD = cosf(PITCH_ANGLE_DEG_LOCKOUT_THRESHOLD*PI/180.0f);
 
 // Apogee detection (COASTING → DESCENT)
 #define APOGEE_SAMPLES_CHECK 10           // Check last 10 samples
@@ -90,7 +91,7 @@ void updateFlightPhase(INS_State& ins);
 // Control check
 bool shouldControl();
 
-void checkLockout(INS_State& ins, FlightPhase& currentPhase);
+bool checkLockout(INS_State& ins, FlightPhase& currentPhase);
 
 // Phase buffer functions (if enabled)
 #ifdef ENABLE_PHASE_BUFFER

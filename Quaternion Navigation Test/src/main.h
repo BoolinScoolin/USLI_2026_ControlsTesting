@@ -1,21 +1,24 @@
 #pragma once
 
 // Includes
+#include <Arduino.h>
 #include "Measurements.h"
 #include "Navigation.h"
 #include "Sensors.h"
 #include "Quaternion.h"
-#include "SD.h"
 #include "imu_calibration.h"
 #include "KalmanFilter.h"
 #include "PhaseManager.h"
+#include "Actuator.h"
+#include "ApogeeController.h"
+#include "logging.h"
+#include "pins.h"
+#include "SensorBackend.h"
+#include "RealSensors.h"
 
-// IMU
-#define IMU_DRDY_PIN 20
-#define IMU_ADDRESS 0x6B
+#define OUTPUT_FILENAME "Flight_Data.txt" // include .txt
 
 // Initialize beeper 
-#define BUZZER_PIN 33
 const int NOTE_A7 = 3520;
 const int NOTE_B7 = 3951;
 const int NOTE_C8 = 4186;
@@ -27,22 +30,25 @@ const int NOTE_A8 = 7040;
 const int NOTE_B8 = 7902;
 
 // Data logging
-#define OUTPUT_FILENAME "IMU_Output.txt" // include .txt
-#define CALIBRATION_FILENAME "six_point_calibration.txt"
-#define ONE_MINUTE_US 60UL*1000000UL
+//extern char log_filename[32];
+extern File output_file;
+
+// Initialize Servo Parameters
+class CTServo;
+extern CTServo servo; // create servo object
 
 extern IMU_Measurements imu_meas;
 extern BARO_Measurements baro_meas;
 extern INS_State ins;
 extern FlightPhase currentPhase;
 
+class ApogeeController;
+extern ApogeeController controller;
+
 
 // Calibration data
 extern TUMBLE_Data calib_data;
 extern KalmanFilter KF;
-extern bool read_baro_flag;
-
-
 
 
 template <size_t N>

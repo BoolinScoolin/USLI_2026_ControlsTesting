@@ -4,6 +4,7 @@
 #include "Quaternion.h"
 #include "Measurements.h"
 #include "imu_calibration.h"
+#include "pins.h"
 
 const float gz_n_mps2 = 9.80665;
 
@@ -37,3 +38,5 @@ void correctImuMeasurements(INS_State& ins, const IMU_Measurements& imu_meas);
 void attitude_propagate(INS_State& ins, const IMU_Measurements& imu_meas);
 void compute_attitude(INS_State& ins, FlightPhase& currentPhase, const IMU_Measurements& imu_meas);
 void parse_reading(INS_State& ins, FlightPhase& currentPhase, const IMU_Measurements& imu_meas);
+void initialize_orientation(INS_State& ins, IMU_Measurements& imu_meas);
+void apply_imu_calibration(INS_State& ins);

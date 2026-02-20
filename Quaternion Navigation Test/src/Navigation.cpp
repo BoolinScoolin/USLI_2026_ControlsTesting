@@ -16,9 +16,9 @@ void attitude_propagate(INS_State& ins, const IMU_Measurements& imu_meas) {
     }
 
     // Angular rates = gyro readings - gyro biases
-    float p_b_rps = imu_meas.gyroX - ins.b1_g_rps;
-    float q_b_rps = -imu_meas.gyroY - ins.b2_g_rps;
-    float r_b_rps = -imu_meas.gyroZ - ins.b3_g_rps;
+    float p_b_rps = -(imu_meas.gyroX - ins.b1_g_rps);
+    float q_b_rps = imu_meas.gyroY - ins.b2_g_rps;
+    float r_b_rps = -(imu_meas.gyroZ - ins.b3_g_rps);
 
     // Compute sigma
     float sigma_x_rad = p_b_rps*deltat_s;
@@ -52,9 +52,12 @@ void attitude_propagate(INS_State& ins, const IMU_Measurements& imu_meas) {
 void compute_attitude(INS_State& ins, FlightPhase& currentPhase, const IMU_Measurements& imu_meas) {
     if (currentPhase == ARMED) {
         const float d2r = PI/180;
-        float phi_rad = imu_meas.roll_deg*d2r;
-        float theta_rad = -imu_meas.pitch_deg*d2r;
+        float phi_rad = -imu_meas.roll_deg*d2r;
+        float theta_rad = imu_meas.pitch_deg*d2r;
         float psi_rad = -imu_meas.yaw_deg*d2r;
+        ins.p_b_rps = -(imu_meas.gyroX - ins.b1_g_rps);
+        ins.q_b_rps = imu_meas.gyroY - ins.b2_g_rps;
+        ins.r_b_rps = -(imu_meas.gyroZ - ins.b3_g_rps);
         ins.q_nb = eul2quat(phi_rad, theta_rad, psi_rad);
     } else {
         attitude_propagate(ins, imu_meas);
@@ -69,4 +72,100 @@ void parse_reading(INS_State& ins, FlightPhase& currentPhase, const IMU_Measurem
                             ins.tumble_calibration_data.estimatedTrueAcceleration[1] * ins.tumble_calibration_data.estimatedTrueAcceleration[1] +
                             ins.tumble_calibration_data.estimatedTrueAcceleration[2] * ins.tumble_calibration_data.estimatedTrueAcceleration[2]) -
                             gz_n_mps2;
+}
+
+void initialize_orientation(INS_State& ins, IMU_Measurements& imu_meas) {
+    Serial.println("Initializing Orientation...");
+    while(!digitalRead(IMU_DRDY_PIN)) { /* wait */ };
+    readIMU(imu_meas);
+    delay(10);
+    readIMU(imu_meas);
+    delay(10);
+    readIMU(imu_meas);
+    delay(10);
+    readIMU(imu_meas);
+    delay(10);
+    Serial.print(imu_meas.roll_deg);
+    Serial.print(" ");
+    Serial.print(imu_meas.pitch_deg);
+    Serial.print(" ");
+    Serial.println(imu_meas.yaw_deg);
+    constexpr float d2r = PI/180.0f;
+    float roll_rad = imu_meas.roll_deg*d2r;
+    float pitch_rad = -imu_meas.pitch_deg*d2r;
+    float yaw_rad = -imu_meas.yaw_deg*d2r;
+    ins.q_nb = eul2quat(roll_rad, pitch_rad, yaw_rad);
+}
+
+void apply_imu_calibration(INS_State& ins) {
+    // Parse IMU calibration data from SD Card
+    float invGainMatrixValues[9] = {
+        1.002844,-0.007338,-0.002772,0.011808,1.001216,-0.032589,-0.004214,0.031073,1.001119
+    };
+    float axisOffsetValues[3] = {
+        0.000454,-0.032508,-0.008450
+    };
+    for (int row = 0; row < 3; row++) {
+        for (int col = 0; col < 3; col++) {
+            ins.tumble_calibration_data.invGainMatrix[row][col] =
+                invGainMatrixValues[row * 3 + col];
+        }
+        ins.tumble_calibration_data.axisOffset[row] = axisOffsetValues[row];
+    }
+    // Serial.print(ins.tumble_calibration_data.invGainMatrix[0][0], 6);
+    // Serial.print(" ");
+    // Serial.print(ins.tumble_calibration_data.invGainMatrix[0][1], 6);
+    // Serial.print(" ");
+    // Serial.println(ins.tumble_calibration_data.invGainMatrix[0][2], 6);
+    // Serial.print(ins.tumble_calibration_data.invGainMatrix[1][0], 6);
+    // Serial.print(" ");
+    // Serial.print(ins.tumble_calibration_data.invGainMatrix[1][1], 6);
+    // Serial.print(" ");
+    // Serial.println(ins.tumble_calibration_data.invGainMatrix[1][2], 6);
+    // Serial.print(ins.tumble_calibration_data.invGainMatrix[2][0], 6);
+    // Serial.print(" ");
+    // Serial.print(ins.tumble_calibration_data.invGainMatrix[2][1], 6);
+    // Serial.print(" ");
+    // Serial.println(ins.tumble_calibration_data.invGainMatrix[2][2], 6);
+
+    // Serial.print("\n");
+    // Serial.print(ins.tumble_calibration_data.axisOffset[0], 6);
+    // Serial.print(" ");
+    // Serial.print(ins.tumble_calibration_data.axisOffset[1], 6);
+    // Serial.print(" ");
+    // Serial.println(ins.tumble_calibration_data.axisOffset[2], 6);
+}
+
+void navigation_propagate(INS_State& ins, const IMU_Measurements& imu_meas) {
+    
+    // Time since last prop step
+    constexpr float US_TO_S = 1.0e-6f;
+    float deltat_s = imu_meas.IMU_dt_us * US_TO_S; 
+
+    // Specific force in body frame
+    float ax_b_mps2 = imu_meas.accelX - ins.b1_a_mps2;
+    float ay_b_mps2 = imu_meas.accelY - ins.b2_a_mps2;
+    float az_b_mps2 = imu_meas.accelZ - ins.b3_a_mps2;
+
+    // Resolve acceleration in body frame
+    float ax_n_mps2;
+    float ay_n_mps2;
+    float az_n_mps2;
+    quat_transform(ins.q_nb,
+                   ax_b_mps2, ax_n_mps2,
+                   ay_b_mps2, ay_n_mps2,
+                   az_b_mps2, az_n_mps2);
+
+    // Gravity compensation
+    az_n_mps2 += gz_n_mps2;
+
+    // Propagation
+    const float half_dt2 = 0.5f * deltat_s*deltat_s;
+    ins.p1_n_m += ins.v1_n_mps*deltat_s + ax_n_mps2*half_dt2;
+    ins.p2_n_m += ins.v2_n_mps*deltat_s + ay_n_mps2*half_dt2;
+    ins.p3_n_m += ins.v3_n_mps*deltat_s + az_n_mps2*half_dt2;
+    ins.v1_n_mps += ax_n_mps2*deltat_s;
+    ins.v2_n_mps += ay_n_mps2*deltat_s;
+    ins.v3_n_mps += az_n_mps2*deltat_s;
+    
 }
